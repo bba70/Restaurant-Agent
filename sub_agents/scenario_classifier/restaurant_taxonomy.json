@@ -1,0 +1,327 @@
+{
+  "餐饮相关场所-餐饮相关": {
+    "medium_category": "餐饮相关场所",
+    "small_category": "餐饮相关",
+    "type": "50000"
+  },
+  "中餐厅-中餐厅": {
+    "medium_category": "中餐厅",
+    "small_category": "中餐厅",
+    "type": "50100"
+  },
+  "中餐厅-综合酒楼": {
+    "medium_category": "中餐厅",
+    "small_category": "综合酒楼",
+    "type": "50101"
+  },
+  "中餐厅-四川菜(川菜)": {
+    "medium_category": "中餐厅",
+    "small_category": "四川菜(川菜)",
+    "type": "50102"
+  },
+  "中餐厅-广东菜(粤菜)": {
+    "medium_category": "中餐厅",
+    "small_category": "广东菜(粤菜)",
+    "type": "50103"
+  },
+  "中餐厅-山东菜(鲁菜)": {
+    "medium_category": "中餐厅",
+    "small_category": "山东菜(鲁菜)",
+    "type": "50104"
+  },
+  "中餐厅-江苏菜": {
+    "medium_category": "中餐厅",
+    "small_category": "江苏菜",
+    "type": "50105"
+  },
+  "中餐厅-浙江菜": {
+    "medium_category": "中餐厅",
+    "small_category": "浙江菜",
+    "type": "50106"
+  },
+  "中餐厅-上海菜": {
+    "medium_category": "中餐厅",
+    "small_category": "上海菜",
+    "type": "50107"
+  },
+  "中餐厅-湖南菜(湘菜)": {
+    "medium_category": "中餐厅",
+    "small_category": "湖南菜(湘菜)",
+    "type": "50108"
+  },
+  "中餐厅-安徽菜(徽菜)": {
+    "medium_category": "中餐厅",
+    "small_category": "安徽菜(徽菜)",
+    "type": "50109"
+  },
+  "中餐厅-福建菜": {
+    "medium_category": "中餐厅",
+    "small_category": "福建菜",
+    "type": "50110"
+  },
+  "中餐厅-北京菜": {
+    "medium_category": "中餐厅",
+    "small_category": "北京菜",
+    "type": "50111"
+  },
+  "中餐厅-湖北菜(鄂菜)": {
+    "medium_category": "中餐厅",
+    "small_category": "湖北菜(鄂菜)",
+    "type": "50112"
+  },
+  "中餐厅-东北菜": {
+    "medium_category": "中餐厅",
+    "small_category": "东北菜",
+    "type": "50113"
+  },
+  "中餐厅-云贵菜": {
+    "medium_category": "中餐厅",
+    "small_category": "云贵菜",
+    "type": "50114"
+  },
+  "中餐厅-西北菜": {
+    "medium_category": "中餐厅",
+    "small_category": "西北菜",
+    "type": "50115"
+  },
+  "中餐厅-老字号": {
+    "medium_category": "中餐厅",
+    "small_category": "老字号",
+    "type": "50116"
+  },
+  "中餐厅-火锅店": {
+    "medium_category": "中餐厅",
+    "small_category": "火锅店",
+    "type": "50117"
+  },
+  "中餐厅-特色/地方风味餐厅": {
+    "medium_category": "中餐厅",
+    "small_category": "特色/地方风味餐厅",
+    "type": "50118"
+  },
+  "中餐厅-海鲜酒楼": {
+    "medium_category": "中餐厅",
+    "small_category": "海鲜酒楼",
+    "type": "50119"
+  },
+  "中餐厅-中式素菜馆": {
+    "medium_category": "中餐厅",
+    "small_category": "中式素菜馆",
+    "type": "50120"
+  },
+  "中餐厅-清真菜馆": {
+    "medium_category": "中餐厅",
+    "small_category": "清真菜馆",
+    "type": "50121"
+  },
+  "中餐厅-台湾菜": {
+    "medium_category": "中餐厅",
+    "small_category": "台湾菜",
+    "type": "50122"
+  },
+  "中餐厅-潮州菜": {
+    "medium_category": "中餐厅",
+    "small_category": "潮州菜",
+    "type": "50123"
+  },
+  "外国餐厅-外国餐厅": {
+    "medium_category": "外国餐厅",
+    "small_category": "外国餐厅",
+    "type": "50200"
+  },
+  "外国餐厅-西餐厅(综合风味)": {
+    "medium_category": "外国餐厅",
+    "small_category": "西餐厅(综合风味)",
+    "type": "50201"
+  },
+  "外国餐厅-日本料理": {
+    "medium_category": "外国餐厅",
+    "small_category": "日本料理",
+    "type": "50202"
+  },
+  "外国餐厅-韩国料理": {
+    "medium_category": "外国餐厅",
+    "small_category": "韩国料理",
+    "type": "50203"
+  },
+  "外国餐厅-法式菜品餐厅": {
+    "medium_category": "外国餐厅",
+    "small_category": "法式菜品餐厅",
+    "type": "50204"
+  },
+  "外国餐厅-意式菜品餐厅": {
+    "medium_category": "外国餐厅",
+    "small_category": "意式菜品餐厅",
+    "type": "50205"
+  },
+  "外国餐厅-泰国/越南菜品餐厅": {
+    "medium_category": "外国餐厅",
+    "small_category": "泰国/越南菜品餐厅",
+    "type": "50206"
+  },
+  "外国餐厅-地中海风格菜品": {
+    "medium_category": "外国餐厅",
+    "small_category": "地中海风格菜品",
+    "type": "50207"
+  },
+  "外国餐厅-美式风味": {
+    "medium_category": "外国餐厅",
+    "small_category": "美式风味",
+    "type": "50208"
+  },
+  "外国餐厅-印度风味": {
+    "medium_category": "外国餐厅",
+    "small_category": "印度风味",
+    "type": "50209"
+  },
+  "外国餐厅-英国式菜品餐厅": {
+    "medium_category": "外国餐厅",
+    "small_category": "英国式菜品餐厅",
+    "type": "50210"
+  },
+  "外国餐厅-牛扒店(扒房)": {
+    "medium_category": "外国餐厅",
+    "small_category": "牛扒店(扒房)",
+    "type": "50211"
+  },
+  "外国餐厅-俄国菜": {
+    "medium_category": "外国餐厅",
+    "small_category": "俄国菜",
+    "type": "50212"
+  },
+  "外国餐厅-葡国菜": {
+    "medium_category": "外国餐厅",
+    "small_category": "葡国菜",
+    "type": "50213"
+  },
+  "外国餐厅-德国菜": {
+    "medium_category": "外国餐厅",
+    "small_category": "德国菜",
+    "type": "50214"
+  },
+  "外国餐厅-巴西菜": {
+    "medium_category": "外国餐厅",
+    "small_category": "巴西菜",
+    "type": "50215"
+  },
+  "外国餐厅-墨西哥菜": {
+    "medium_category": "外国餐厅",
+    "small_category": "墨西哥菜",
+    "type": "50216"
+  },
+  "外国餐厅-其它亚洲菜": {
+    "medium_category": "外国餐厅",
+    "small_category": "其它亚洲菜",
+    "type": "50217"
+  },
+  "快餐厅-快餐厅": {
+    "medium_category": "快餐厅",
+    "small_category": "快餐厅",
+    "type": "50300"
+  },
+  "快餐厅-肯德基": {
+    "medium_category": "快餐厅",
+    "small_category": "肯德基",
+    "type": "50301"
+  },
+  "快餐厅-麦当劳": {
+    "medium_category": "快餐厅",
+    "small_category": "麦当劳",
+    "type": "50302"
+  },
+  "快餐厅-必胜客": {
+    "medium_category": "快餐厅",
+    "small_category": "必胜客",
+    "type": "50303"
+  },
+  "快餐厅-永和豆浆": {
+    "medium_category": "快餐厅",
+    "small_category": "永和豆浆",
+    "type": "50304"
+  },
+  "快餐厅-茶餐厅": {
+    "medium_category": "快餐厅",
+    "small_category": "茶餐厅",
+    "type": "50305"
+  },
+  "快餐厅-大家乐": {
+    "medium_category": "快餐厅",
+    "small_category": "大家乐",
+    "type": "50306"
+  },
+  "快餐厅-大快活": {
+    "medium_category": "快餐厅",
+    "small_category": "大快活",
+    "type": "50307"
+  },
+  "快餐厅-美心": {
+    "medium_category": "快餐厅",
+    "small_category": "美心",
+    "type": "50308"
+  },
+  "快餐厅-吉野家": {
+    "medium_category": "快餐厅",
+    "small_category": "吉野家",
+    "type": "50309"
+  },
+  "快餐厅-仙跡岩": {
+    "medium_category": "快餐厅",
+    "small_category": "仙跡岩",
+    "type": "50310"
+  },
+  "快餐厅-呷哺呷哺": {
+    "medium_category": "快餐厅",
+    "small_category": "呷哺呷哺",
+    "type": "50311"
+  },
+  "休闲餐饮场所-休闲餐饮场所": {
+    "medium_category": "休闲餐饮场所",
+    "small_category": "休闲餐饮场所",
+    "type": "50400"
+  },
+  "咖啡厅-咖啡厅": {
+    "medium_category": "咖啡厅",
+    "small_category": "咖啡厅",
+    "type": "50500"
+  },
+  "咖啡厅-星巴克咖啡": {
+    "medium_category": "咖啡厅",
+    "small_category": "星巴克咖啡",
+    "type": "50501"
+  },
+  "咖啡厅-上岛咖啡": {
+    "medium_category": "咖啡厅",
+    "small_category": "上岛咖啡",
+    "type": "50502"
+  },
+  "咖啡厅-Pacific Coffee Company": {
+    "medium_category": "咖啡厅",
+    "small_category": "Pacific Coffee Company",
+    "type": "50503"
+  },
+  "咖啡厅-巴黎咖啡店": {
+    "medium_category": "咖啡厅",
+    "small_category": "巴黎咖啡店",
+    "type": "50504"
+  },
+  "茶艺馆-茶艺馆": {
+    "medium_category": "茶艺馆",
+    "small_category": "茶艺馆",
+    "type": "50600"
+  },
+  "冷饮店-冷饮店": {
+    "medium_category": "冷饮店",
+    "small_category": "冷饮店",
+    "type": "50700"
+  },
+  "糕饼店-糕饼店": {
+    "medium_category": "糕饼店",
+    "small_category": "糕饼店",
+    "type": "50800"
+  },
+  "甜品店-甜品店": {
+    "medium_category": "甜品店",
+    "small_category": "甜品店",
+    "type": "50900"
+  }
+}
