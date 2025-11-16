@@ -2,7 +2,7 @@ from plann_and_execute.agent import graph
 
 def test_basic_orchestrator_flow():
     initial_state = {
-        "query": "我在北京想吃川菜，有没有推荐？价格在100元以下",
+        "query": "帮我推荐一下陕西科技大学附近的美食",
         "replan_count": 0,
         "error_info": None,
         "past_plans": [],

@@ -289,9 +289,15 @@ def _run_parse_query(step_input: dict) -> dict:
 
 
 def _run_food_search(step_input: dict) -> dict:
-    keywords = step_input.get("keywords") or step_input.get("query")
+    keywords = step_input.get("keywords") or step_input.get("query") or "美食"
     location = step_input.get("location") or step_input.get("city")
     types = step_input.get("types") or "050000"
+    
+    # 如果keywords包含位置词汇（如"附近"、"周边"等），则使用默认值"美食"
+    location_keywords = ["附近", "周边", "旁边", "靠近", "距离", "方圆"]
+    if any(kw in keywords for kw in location_keywords):
+        print(f"  > 检测到位置词汇，使用默认关键词'美食'代替'{keywords}'")
+        keywords = "美食"
 
     search_criteria = {
         "keywords": keywords,

@@ -13,6 +13,10 @@ ALIYUN_API_KEY = os.getenv("ALIYUN_API_KEY", "")
 ALIYUN_BASE_URL = os.getenv("ALIYUN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
 ALIYUN_MODEL = os.getenv("ALIYUN_MODEL", "qwen-plus")
 
+print(ALIYUN_API_KEY)
+print(ALIYUN_BASE_URL)
+print(ALIYUN_MODEL)
+
 
 # Gaode API 配置
 GAODE_API_KEY = os.getenv("GAODE_API_KEY", "")
