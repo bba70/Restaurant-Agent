@@ -55,6 +55,11 @@ def route_after_subgraph_execution(state: OrchestratorState) -> str:
         state["replan_count"] = replan_count + 1
         return "replan"
     
+    # 检查是否所有步骤都已完成
+    if plan and current_step > len(plan.steps):
+        print(f"所有步骤已完成，进入格式化阶段")
+        return "end"
+    
     # 计划未完成，继续执行下一步
     print(f"计划未完成，继续执行下一步")
     return "continue"

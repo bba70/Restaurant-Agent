@@ -12,6 +12,7 @@ from prompt.planner import (
 from sub_agents.scenario_classifier import scenario_classifier_agent
 from sub_agents.parse_query.parse_query import parse_query_agent
 from sub_agents.food_search.food_search import food_search_agent
+from sub_agents.filter_criteria import filter_criteria_agent, apply_filters
 
 
 def planner_node(state: OrchestratorState) -> OrchestratorState:
@@ -256,14 +257,14 @@ def _run_scenario_classifier(step_input: dict) -> dict:
     scenario_state = {
         "query": step_input.get("query", ""),
         "scenario": None,
-        "types": None,
+        "restaurant_type": None,
         "confidence": None,
         "error_messages": [],
     }
     result = scenario_classifier_agent.invoke(scenario_state)
     return {
         "scenario": result.get("scenario"),
-        "types": result.get("types"),
+        "types": result.get("restaurant_type"),
         "error_messages": result.get("error_messages", []),
     }
 
@@ -312,15 +313,32 @@ def _run_food_search(step_input: dict) -> dict:
     }
 
 
+def _run_filter_criteria(step_input: dict) -> dict:
+    filter_state = {
+        "query": step_input.get("query", ""),
+        "filters": None,
+        "confidence": None,
+        "error_messages": [],
+    }
+    result = filter_criteria_agent.invoke(filter_state)
+    return {
+        "filters": result.get("filters"),
+        "confidence": result.get("confidence"),
+        "error_messages": result.get("error_messages", []),
+    }
+
+
 _SUBGRAPH_EXECUTORS: Dict[str, Callable[[Dict[str, Any]], dict]] = {
     "scenario_classifier": _run_scenario_classifier,
     "parse_query": _run_parse_query,
     "food_search": _run_food_search,
+    "filter_criteria": _run_filter_criteria,
 }
 
 _SUBGRAPH_CATALOG: Dict[str, str] = {
     "scenario_classifier": "根据用户query识别就餐场景并映射高德API type",
     "parse_query": "解析用户query中的城市，缺失时回退到定位",
+    "filter_criteria": "从用户query中提取价格、评分、距离等筛选条件",
     "food_search": "调用高德美食搜索接口，返回清洗后的餐厅列表",
 }
 
@@ -411,8 +429,20 @@ def formatter_node(state: OrchestratorState) -> OrchestratorState:
     scenario_info = _extract_result(step_results, {"scenario", "types"})
     city_info = _extract_result(step_results, {"city", "location"})
     food_info = _extract_result(step_results, {"search_results"})
+    filter_info = _extract_result(step_results, {"filters"})
 
     restaurants = food_info.get("search_results", []) if isinstance(food_info, dict) else []
+    filters = filter_info.get("filters") if isinstance(filter_info, dict) else {}
+    
+    # 应用筛选条件到搜索结果
+    if filters:
+        print(f"\n--- 应用筛选条件 ---")
+        restaurants = apply_filters(restaurants, filters)
+        print(f"筛选后餐厅数: {len(restaurants)}")
+    
+    # 只保留前5个结果
+    top_restaurants = restaurants[:5]
+    
     errors: List[str] = []
 
     for result in step_results.values():
@@ -425,8 +455,10 @@ def formatter_node(state: OrchestratorState) -> OrchestratorState:
         "types": scenario_info.get("types") if isinstance(scenario_info, dict) else None,
         "city": city_info.get("city") if isinstance(city_info, dict) else None,
         "location": city_info.get("location") if isinstance(city_info, dict) else None,
-        "restaurant_count": len(restaurants),
-        "restaurants": restaurants,
+        "filters_applied": filters if filters else None,
+        "total_found": len(restaurants),
+        "recommendation_count": len(top_restaurants),
+        "recommendations": top_restaurants,
         "errors": errors,
     }
 

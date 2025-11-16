@@ -7,11 +7,15 @@ import requests
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 
-from config import ALIYUN_API_KEY, ALIYUN_BASE_URL, ALIYUN_MODEL, GAODE_API_KEY, DEFAULT_CITY, DEFAULT_LOCATION
+from config import ALIYUN_API_KEY, ALIYUN_BASE_URL, ALIYUN_MODEL, GAODE_API_KEY
 from prompt.parse_query import (
     PARSE_QUERY_SYSTEM_PROMPT,
     PARSE_QUERY_USER_PROMPT_TEMPLATE,
 )
+
+
+DEFAULT_CITY = os.getenv("DEFAULT_CITY", "北京")
+DEFAULT_LOCATION = os.getenv("DEFAULT_LOCATION", "116.397128,39.916527")
 
 CITY_LOCATION_MAP = {
     "北京": "116.397128,39.916527",

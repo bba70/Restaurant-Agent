@@ -31,18 +31,24 @@ PLANNER_SYSTEM_PROMPT = """你是一个美食推荐规划专家。你的职责�
 - step_id 必须从1开始，按顺序递增
 - subgraph_name 必须严格从下列子图中选择，名称必须完全匹配：
   1. "parse_query" —— 解析 query，输出 city、location
-  2. "scenario_classifier" —— 识别场景，输出 scenario、types
-  3. "food_search" —— 调用高德美食搜索，输入需要 city、location(经纬度)、types
+  2. "scenario_classifier" —— 【可选】识别场景，输出 scenario、types
+  3. "filter_criteria" —— 【可选】提取筛选条件，输出 filters、confidence
+  4. "food_search" —— 调用高德美食搜索，输入需要 city、location(经纬度)、types
 - description 应该简洁明了
 - input_mapping 用于定义数据流：
   - 格式为 "step_X.output_field" 表示来自第X步的输出字段
   - 如果是第一步，通常不需要 input_mapping
-- 确保步骤顺序合理：通常 parse_query -> scenario_classifier -> food_search
+- 确保步骤顺序合理（根据 query 内容灵活组合）：
+  - 最简单：parse_query -> food_search（直接搜索）
+  - 有场景需求：parse_query -> scenario_classifier -> food_search（按餐厅类型搜索）
+  - 有筛选条件：parse_query -> scenario_classifier -> filter_criteria -> food_search（按类型和条件搜索）
+  - 仅有筛选条件：parse_query -> filter_criteria -> food_search（按条件搜索）
 - 必须提供 food_search 所需的所有输入映射，包括：
-  - "keywords": 来自场景分类的结果（例如 "step_2.scenario"），不要直接使用原始 query
+  - "keywords": 来自场景分类的结果（例如 "step_2.scenario"），或直接使用 query
   - "city": "step_1.city"
   - "location": "step_1.location" (注意是经纬度字符串)
-  - "types": "step_2.types"
+  - "types": 来自 scenario_classifier 的输出，或使用默认值 "050000"
+- scenario_classifier 和 filter_criteria 的输出会在 formatter 中使用，进行结果处理和排序
 
 ## 美食推荐常见流程：
 1. 提取用户位置和偏好信息
