@@ -8,7 +8,8 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from pathlib import Path # 导入 Path 用于文件路径处理
 
 from plann_and_execute.agent import graph
 
@@ -31,6 +32,9 @@ app.add_middleware(
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# 文件路径：假设 index.html 与 main.py 在同一目录下
+FRONTEND_FILE_PATH = Path("index.html")
 
 
 # 请求模型
@@ -56,6 +60,21 @@ class RecommendResponse(BaseModel):
     success: bool
     message: str
     data: Optional[Dict[str, Any]] = None
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    """
+    新增根路由：服务前端 HTML 文件 (index.html)
+    """
+    if not FRONTEND_FILE_PATH.exists():
+        # 如果文件不存在，返回 404 错误
+        raise HTTPException(
+            status_code=404, 
+            detail="Frontend file (index.html) not found. Please ensure it is in the same directory as main.py and rebuild the container."
+        )
+        
+    return FileResponse(FRONTEND_FILE_PATH)
 
 
 @app.get("/health")
@@ -133,6 +152,7 @@ async def recommend_restaurants(request: RecommendRequest):
         
         # 调用 Agent
         logger.info("开始执行 Agent...")
+        # 注意: 这里的 graph.invoke 依赖您的 plann_and_execute 模块，假设它是可用的
         final_state = graph.invoke(initial_state)
         
         # 解析结果

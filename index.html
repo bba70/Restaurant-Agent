@@ -323,7 +323,8 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:9000';
+        // 自动获取当前域名和端口，支持本地和服务器部署
+        const API_URL = window.location.origin;
 
         // 处理回车键
         function handleKeyPress(event) {
