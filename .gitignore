@@ -3,3 +3,8 @@ __pycache__
 
 .claude/
 openspec/
+.opencode/
+
+# Frontend
+web/dist/
+web/node_modules/
