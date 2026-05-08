@@ -1,6 +1,7 @@
 """
 应用筛选条件到搜索结果
 """
+import math
 from typing import List, Dict, Any, Optional
 
 
@@ -128,21 +129,96 @@ def apply_filters(
     return filtered_results
 
 
+def _calc_balance_score(distances: List[float]) -> float:
+    """计算均衡度评分：使用标准差，越小越均衡。支持 N >= 2。"""
+    if len(distances) <= 1:
+        return 0.0
+    mean = sum(distances) / len(distances)
+    variance = sum((d - mean) ** 2 for d in distances) / len(distances)
+    return math.sqrt(variance)
+
+
+def apply_balance_filter(
+    results: List[Dict[str, Any]],
+    mode: str = "hard",
+    threshold: float = 2000.0,
+) -> List[Dict[str, Any]]:
+    """
+    对搜索结果应用均衡度筛选
+
+    参数:
+        results: 搜索结果列表（每个结果需包含 distances 字段）
+        mode: "hard"（阈值过滤）或 "soft"（排序加权）
+        threshold: hard 模式下的 balance_score 阈值（默认 2000m）
+
+    返回:
+        筛选/排序后的结果列表
+    """
+    if not results:
+        return []
+
+    # 为每个结果计算 balance_score
+    scored = []
+    for r in results:
+        distances = r.get("distances", [])
+        valid_d = [d for d in distances if d >= 0]
+        if not valid_d:
+            balance = 0.0
+        elif len(valid_d) == 1:
+            balance = 0.0  # 单地点：退化为 0
+        else:
+            balance = _calc_balance_score(valid_d)
+        scored.append({**r, "_balance_score": round(balance, 1)})
+
+    if mode == "hard":
+        # 阈值过滤：balance_score < threshold
+        filtered = [r for r in scored if r["_balance_score"] < threshold]
+        # 按评分降序
+        filtered.sort(
+            key=lambda r: float(r.get("rating") or 0),
+            reverse=True,
+        )
+        print(f"  > [hard] 均衡度过滤: {len(scored)} → {len(filtered)} (阈值 {threshold}m)")
+        return filtered
+
+    elif mode == "soft":
+        if not scored:
+            return []
+
+        # 归一化：rating (0-5 → 0-1)，balance_score (0-bound)
+        ratings = [float(r.get("rating") or 0) for r in scored]
+        balances = [r["_balance_score"] for r in scored]
+
+        max_rating = max(ratings) if max(ratings) > 0 else 5.0
+        max_balance = max(balances) if max(balances) > 0 else 2000.0
+
+        for r in scored:
+            rating_norm = float(r.get("rating") or 0) / max_rating
+            balance_norm = r["_balance_score"] / max_balance if max_balance > 0 else 0
+            r["_composite_score"] = rating_norm * 0.6 + (1 - balance_norm) * 0.4
+
+        scored.sort(key=lambda r: r["_composite_score"], reverse=True)
+        print(f"  > [soft] 综合加权排序: {len(scored)} 条")
+        return scored
+
+    return scored
+
+
 def filter_and_sort_results(
     results: List[Dict[str, Any]],
     filters: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     对搜索结果进行完整的筛选和排序
-    
+
     返回:
         包含过滤结果和统计信息的字典
     """
-    
+
     original_count = len(results)
     filtered_results = apply_filters(results, filters)
     filtered_count = len(filtered_results)
-    
+
     return {
         "search_results": filtered_results,
         "original_count": original_count,

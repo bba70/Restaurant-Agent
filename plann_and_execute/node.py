@@ -12,7 +12,8 @@ from prompt.planner import (
 from sub_agents.scenario_classifier import scenario_classifier_agent
 from sub_agents.parse_query.parse_query import parse_query_agent
 from sub_agents.food_search.food_search import food_search_agent
-from sub_agents.filter_criteria import filter_criteria_agent, apply_filters
+from sub_agents.filter_criteria import filter_criteria_agent, apply_filters, apply_balance_filter
+from sub_agents.intent_classifier import intent_classifier_agent
 
 
 def planner_node(state: OrchestratorState) -> OrchestratorState:
@@ -151,15 +152,19 @@ def executor_node(state: OrchestratorState) -> OrchestratorState:
     '''
     
     current_step_index: int = state["current_step"]
-    
+    plan: Plan = state.get("plan")
+
     print(f"\n--- 执行器递增步骤 ---")
     print(f"当前步骤: {current_step_index}")
-    
-    # 更新current_step指向下一步
-    state["current_step"] = current_step_index + 1
-    
-    print(f"下一步骤: {state['current_step']}")
-    
+    print(f"计划总步数: {len(plan.steps) if plan else 0}")
+
+    # 如果当前步骤小于总步数，则递增到下一步
+    if plan and current_step_index < len(plan.steps):
+        state["current_step"] = current_step_index + 1
+        print(f"下一步骤: {state['current_step']}")
+    else:
+        print(f"已是最后一步，不再递增（标记完成）")
+
     return state
 
 
@@ -278,12 +283,16 @@ def _run_parse_query(step_input: dict) -> dict:
         "location_source": None,
         "location_text": None,
         "location": None,
+        "locations": [],
+        "location_count": 0,
         "error_messages": [],
     }
     result = parse_query_agent.invoke(parse_state)
     return {
         "city": result.get("city"),
         "location": result.get("location"),
+        "locations": result.get("locations", []),
+        "location_count": result.get("location_count", 1),
         "error_messages": result.get("error_messages", []),
     }
 
@@ -292,7 +301,9 @@ def _run_food_search(step_input: dict) -> dict:
     keywords = step_input.get("keywords") or step_input.get("query") or "美食"
     location = step_input.get("location") or step_input.get("city")
     types = step_input.get("types") or "050000"
-    
+    search_mode = step_input.get("search_mode", "single")
+    locations = step_input.get("locations", [])
+
     # 如果keywords包含位置词汇（如"附近"、"周边"等），则使用默认值"美食"
     location_keywords = ["附近", "周边", "旁边", "靠近", "距离", "方圆"]
     if any(kw in keywords for kw in location_keywords):
@@ -309,12 +320,16 @@ def _run_food_search(step_input: dict) -> dict:
     food_state = {
         "search_criteria": search_criteria,
         "search_results": [],
+        "locations": locations,
+        "search_mode": search_mode,
+        "fallback": None,
         "error_messages": [],
     }
 
     result = food_search_agent.invoke(food_state)
     return {
         "search_results": result.get("search_results", []),
+        "fallback": result.get("fallback"),
         "error_messages": result.get("error_messages", []),
     }
 
@@ -334,18 +349,45 @@ def _run_filter_criteria(step_input: dict) -> dict:
     }
 
 
+def _run_intent_classifier(step_input: dict) -> dict:
+    intent_state = {
+        "query": step_input.get("query", ""),
+        "location_count": step_input.get("location_count", 1),
+        "intent": None,
+        "search_mode": None,
+        "confidence": None,
+        "error_messages": [],
+    }
+    result = intent_classifier_agent.invoke(intent_state)
+    search_mode = result.get("search_mode", "single")
+    if search_mode in ("along_route", "union"):
+        print(f"  ! 警告: search_mode '{search_mode}' 尚未实现，回退为 single")
+        result["search_mode"] = "single"
+        result["error_messages"].append(
+            f"'{search_mode}' 模式尚未实现，已回退为 single"
+        )
+    return {
+        "intent": result.get("intent"),
+        "search_mode": result.get("search_mode", "single"),
+        "confidence": result.get("confidence"),
+        "error_messages": result.get("error_messages", []),
+    }
+
+
 _SUBGRAPH_EXECUTORS: Dict[str, Callable[[Dict[str, Any]], dict]] = {
     "scenario_classifier": _run_scenario_classifier,
     "parse_query": _run_parse_query,
     "food_search": _run_food_search,
     "filter_criteria": _run_filter_criteria,
+    "intent_classifier": _run_intent_classifier,
 }
 
 _SUBGRAPH_CATALOG: Dict[str, str] = {
     "scenario_classifier": "根据用户query识别就餐场景并映射高德API type",
-    "parse_query": "解析用户query中的城市，缺失时回退到定位",
+    "parse_query": "解析用户query中的城市和多地点，缺失时回退到定位",
     "filter_criteria": "从用户query中提取价格、评分、距离等筛选条件",
     "food_search": "调用高德美食搜索接口，返回清洗后的餐厅列表",
+    "intent_classifier": "根据query和地点数量识别搜索意图，输出search_mode（single/intersection/along_route/union）",
 }
 
 
@@ -433,24 +475,33 @@ def formatter_node(state: OrchestratorState) -> OrchestratorState:
     step_results = state.get("step_results", {}) or {}
 
     scenario_info = _extract_result(step_results, {"scenario", "types"})
-    city_info = _extract_result(step_results, {"city", "location"})
+    city_info = _extract_result(step_results, {"city", "location", "locations", "location_count"})
     food_info = _extract_result(step_results, {"search_results"})
     filter_info = _extract_result(step_results, {"filters"})
+    intent_info = _extract_result(step_results, {"search_mode", "intent"})
 
     restaurants = food_info.get("search_results", []) if isinstance(food_info, dict) else []
     filters = filter_info.get("filters") if isinstance(filter_info, dict) else {}
-    
-    # 应用筛选条件到搜索结果
+    search_mode = intent_info.get("search_mode") if isinstance(intent_info, dict) else "single"
+    fallback = food_info.get("fallback") if isinstance(food_info, dict) else None
+    locations = city_info.get("locations", []) if isinstance(city_info, dict) else []
+    location_count = city_info.get("location_count", 1) if isinstance(city_info, dict) else 1
+
+    # 应用传统筛选条件
     if filters:
         print(f"\n--- 应用筛选条件 ---")
         restaurants = apply_filters(restaurants, filters)
         print(f"筛选后餐厅数: {len(restaurants)}")
-    
-    # 只保留前5个结果
-    top_restaurants = restaurants[:5]
-    
-    errors: List[str] = []
 
+    # 应用均衡度筛选（hard 和 soft 双模式）
+    recommendations_hard = apply_balance_filter(restaurants, mode="hard")
+    recommendations_soft = apply_balance_filter(restaurants, mode="soft")
+
+    # 各取前 5
+    top_hard = recommendations_hard[:5]
+    top_soft = recommendations_soft[:5]
+
+    errors: List[str] = []
     for result in step_results.values():
         if isinstance(result, dict) and result.get("error_messages"):
             errors.extend(result.get("error_messages", []))
@@ -462,9 +513,15 @@ def formatter_node(state: OrchestratorState) -> OrchestratorState:
         "city": city_info.get("city") if isinstance(city_info, dict) else None,
         "location": city_info.get("location") if isinstance(city_info, dict) else None,
         "filters_applied": filters if filters else None,
+        "search_mode": search_mode,
+        "fallback": fallback,
+        "locations": locations,
+        "location_count": location_count,
         "total_found": len(restaurants),
-        "recommendation_count": len(top_restaurants),
-        "recommendations": top_restaurants,
+        "recommendation_count_hard": len(top_hard),
+        "recommendation_count_soft": len(top_soft),
+        "recommendations_hard": _strip_internal_fields(top_hard),
+        "recommendations_soft": _strip_internal_fields(top_soft),
         "errors": errors,
     }
 
@@ -472,6 +529,15 @@ def formatter_node(state: OrchestratorState) -> OrchestratorState:
     print("\n--- 格式化输出 ---")
     print(state["final_result"])
     return state
+
+
+def _strip_internal_fields(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """移除内部计算字段（_balance_score, _composite_score, _fallback）"""
+    cleaned = []
+    for r in results:
+        c = {k: v for k, v in r.items() if not k.startswith("_")}
+        cleaned.append(c)
+    return cleaned
 
 
 def _extract_result(step_results: Dict[int, Any], expected_keys: set) -> Dict[str, Any]:

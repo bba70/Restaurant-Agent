@@ -104,28 +104,28 @@ def scenario_classifier_node(state: ScenarioClassifierState) -> ScenarioClassifi
         
         # 解析JSON响应
         result = json.loads(response_text)
-        
+
         scenario = result.get("scenario")
         confidence = result.get("confidence", 0.0)
-        
-        if scenario:
+
+        if scenario and isinstance(scenario, str):
             print(f"  < 识别到场景: {scenario} (置信度: {confidence})")
-            state['scenario'] = scenario
+            state['scenario'] = scenario.strip()
             state['confidence'] = confidence
-            
+
             # 从映射表中查询对应的 type
             amap_type = _get_restaurant_type_from_scenario(scenario)
             if amap_type:
                 print(f"  < 映射到高德API type: {amap_type}")
                 state['types'] = amap_type
             else:
-                print(f"  < 未在映射表中找到对应的type")
-                state['types'] = None
+                print(f"  < 未在映射表中找到对应的type，使用默认类型 050000")
+                state['types'] = "050000"
         else:
-            print(f"  < 未识别到明确的场景")
+            print(f"  < 未识别到明确的场景，使用默认类型 050000")
             state['scenario'] = None
             state['confidence'] = 0.0
-            state['types'] = None
+            state['types'] = "050000"
         
     except json.JSONDecodeError as e:
         error_msg = f"JSON解析失败: {e}"
@@ -142,39 +142,53 @@ def scenario_classifier_node(state: ScenarioClassifierState) -> ScenarioClassifi
 def _get_restaurant_type_from_scenario(scenario: str) -> Optional[str]:
     """
     根据识别的场景从映射表中查询对应的高德API type
-    
+
     参数:
         scenario: 识别到的场景或餐厅类型名称
-    
+
     返回:
         高德API的type值，如果未找到则返回None
     """
     if not scenario or not TAXONOMY_MAP:
+        print(f"  [DEBUG] scenario 为空或 TAXONOMY_MAP 未加载")
         return None
-    
+
     scenario = scenario.strip()
-    
+    print(f"  [DEBUG] 尝试匹配 scenario: '{scenario}'")
+    print(f"  [DEBUG] TAXONOMY_MAP 大小: {len(TAXONOMY_MAP)}")
+
     # 方式1：精确匹配（中类-小类 格式）
     if scenario in TAXONOMY_MAP:
-        return TAXONOMY_MAP[scenario].get("type")
-    
+        result = TAXONOMY_MAP[scenario].get("type")
+        print(f"  [DEBUG] 方式1精确匹配成功: {result}")
+        return result
+
+    print(f"  [DEBUG] 方式1匹配失败，尝试方式2...")
+
     # 方式2：精确匹配中类或小类
     for key, value in TAXONOMY_MAP.items():
         medium = value.get("medium_category", "")
         small = value.get("small_category", "")
-        
+
         if scenario == medium or scenario == small:
-            return value.get("type")
-    
+            result = value.get("type")
+            print(f"  [DEBUG] 方式2匹配成功 (key={key}): {result}")
+            return result
+
+    print(f"  [DEBUG] 方式2匹配失败，尝试方式3...")
+
     # 方式3：模糊匹配（包含关系）- 处理部分匹配的情况
     for key, value in TAXONOMY_MAP.items():
         medium = value.get("medium_category", "")
         small = value.get("small_category", "")
-        
+
         # 如果scenario包含在中类或小类中，或反过来
         if scenario in medium or scenario in small or medium in scenario or small in scenario:
-            return value.get("type")
-    
+            result = value.get("type")
+            print(f"  [DEBUG] 方式3模糊匹配成功 (key={key}): {result}")
+            return result
+
+    print(f"  [DEBUG] 所有方式均匹配失败")
     return None
 
 

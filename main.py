@@ -6,10 +6,11 @@ import json
 import logging
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from pathlib import Path # 导入 Path 用于文件路径处理
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from plann_and_execute.agent import graph
 
@@ -33,8 +34,9 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 文件路径：假设 index.html 与 main.py 在同一目录下
-FRONTEND_FILE_PATH = Path("index.html")
+# 文件路径
+FRONTEND_DIR = Path("web/dist")
+FRONTEND_INDEX = FRONTEND_DIR / "index.html"
 
 
 # 请求模型
@@ -65,16 +67,14 @@ class RecommendResponse(BaseModel):
 @app.get("/", include_in_schema=False)
 async def serve_frontend():
     """
-    新增根路由：服务前端 HTML 文件 (index.html)
+    根路由：返回前端 index.html
     """
-    if not FRONTEND_FILE_PATH.exists():
-        # 如果文件不存在，返回 404 错误
+    if not FRONTEND_INDEX.exists():
         raise HTTPException(
             status_code=404, 
-            detail="Frontend file (index.html) not found. Please ensure it is in the same directory as main.py and rebuild the container."
+            detail="Frontend not built. Please run 'npm run build' in the web directory."
         )
-        
-    return FileResponse(FRONTEND_FILE_PATH)
+    return FileResponse(FRONTEND_INDEX)
 
 
 @app.get("/health")
@@ -116,19 +116,15 @@ async def recommend_restaurants(request: RecommendRequest):
             "city": "城市",
             "location": "经纬度",
             "filters_applied": {...},
+            "search_mode": "single | intersection",
+            "fallback": null,
+            "locations": [{"name": "地点名", "lnglat": "116.xxx,39.xxx"}],
+            "location_count": 1,
             "total_found": 100,
-            "recommendation_count": 5,
-            "recommendations": [
-                {
-                    "name": "餐厅名称",
-                    "address": "地址",
-                    "location": "经纬度",
-                    "telephone": "电话",
-                    "type": "类型",
-                    "rating": "评分",
-                    "cost": "人均消费"
-                }
-            ],
+            "recommendation_count_hard": 5,
+            "recommendation_count_soft": 5,
+            "recommendations_hard": [...],
+            "recommendations_soft": [...],
             "errors": []
         }
     }
@@ -167,7 +163,9 @@ async def recommend_restaurants(request: RecommendRequest):
                 "error": "结果解析失败"
             }
         
-        logger.info(f"Agent 执行完成，找到 {final_result.get('recommendation_count', 0)} 条推荐")
+        hard_count = final_result.get('recommendation_count_hard', final_result.get('recommendation_count', 0))
+        soft_count = final_result.get('recommendation_count_soft', 0)
+        logger.info(f"Agent 执行完成，hard: {hard_count} 条, soft: {soft_count} 条推荐")
         
         return RecommendResponse(
             success=True,
@@ -198,15 +196,40 @@ async def get_info():
     """
     return {
         "name": "Restaurant-Agent",
-        "version": "1.0.0",
-        "description": "智能美食推荐 Agent，支持场景识别、条件筛选、结果排序",
+        "version": "2.0.0",
+        "description": "智能美食推荐 Agent，支持多地点等距搜索、场景识别、条件筛选、均衡度排序",
         "features": [
-            "城市位置解析",
+            "多地点解析与地理编码",
+            "搜索意图分类（单点/等距/沿途/对比）",
+            "多点等距搜索与严格交集匹配",
+            "降级中点搜索策略",
             "餐厅场景识别",
             "价格/评分筛选",
-            "智能推荐排序"
+            "均衡度双模式排序（hard + soft）",
         ]
     }
+
+
+# 挂载静态文件目录
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="static-assets")
+
+
+# SPA fallback 路由：非 API 路径的 GET 请求返回 index.html
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(request: Request, full_path: str):
+    """
+    SPA fallback：所有非 API 路径返回 index.html，由前端路由处理
+    """
+    # 如果是 API 路径，返回 404
+    if full_path.startswith("api/") or full_path == "health":
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    # 如果前端文件存在，返回 index.html
+    if FRONTEND_INDEX.exists():
+        return FileResponse(FRONTEND_INDEX)
+    
+    raise HTTPException(status_code=404, detail="Frontend not built")
 
 
 if __name__ == "__main__":

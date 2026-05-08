@@ -36,16 +36,19 @@ class ParseQueryState(TypedDict):
     location_source: Optional[str]
     location_text: Optional[str]
     location: Optional[str]
+    locations: List[dict]
+    location_count: int
     error_messages: List[str]
 
 
 def parse_query_node(state: ParseQueryState) -> ParseQueryState:
-    """解析用户查询中的城市信息，缺失时回退到定位结果"""
+    """解析用户查询中的城市和多地点信息，缺失时回退到定位结果"""
 
     print("--- [Agent] 进入 参数解析Agent ---")
 
     query = state.get("query", "").strip()
     state.setdefault("error_messages", [])
+    state.setdefault("locations", [])
     if not query:
         error_msg = "输入错误：query 不能为空。"
         print(f"  < {error_msg}")
@@ -56,6 +59,8 @@ def parse_query_node(state: ParseQueryState) -> ParseQueryState:
         state["location_source"] = None
         state["location_text"] = None
         state["location"] = None
+        state["locations"] = []
+        state["location_count"] = 0
         return state
 
     llm = ChatOpenAI(
@@ -77,21 +82,19 @@ def parse_query_node(state: ParseQueryState) -> ParseQueryState:
         result = json.loads(response_text)
 
         city = result.get("city")
-        location_text = result.get("location_text") or city
+        raw_locations = result.get("locations", [])
         confidence = result.get("confidence")
         reason = result.get("reason")
 
+        if not raw_locations:
+            raw_locations = [{"name": city or "当前位置", "location_text": city or "当前位置"}]
+
         if city:
-            print(f"  < 识别到城市: {city} (置信度: {confidence})")
+            print(f"  < 识别到城市: {city} (置信度: {confidence}), 地点数: {len(raw_locations)}")
             state["city"] = city
             state["confidence"] = confidence
             state["reason"] = reason or "来自用户 query 的明确城市"
             state["location_source"] = "query"
-            state["location_text"] = location_text
-            best_location = _geocode_location(location_text, city)
-            if not best_location:
-                best_location = _fallback_location(city)
-            state["location"] = best_location
         else:
             detected_city, detected_location = _detect_current_city_and_location()
             if detected_city:
@@ -100,8 +103,6 @@ def parse_query_node(state: ParseQueryState) -> ParseQueryState:
                 state["confidence"] = 1.0
                 state["reason"] = "来自设备定位"
                 state["location_source"] = "device"
-                state["location_text"] = detected_city
-                state["location"] = detected_location
             else:
                 error_msg = "无法确定用户所在城市"
                 print(f"  < {error_msg}")
@@ -110,8 +111,49 @@ def parse_query_node(state: ParseQueryState) -> ParseQueryState:
                 state["confidence"] = 0.0
                 state["reason"] = reason or "未能识别城市"
                 state["location_source"] = None
+                state["locations"] = []
+                state["location_count"] = 0
                 state["location_text"] = None
                 state["location"] = None
+                return state
+
+        resolved_city = state.get("city", "")
+
+        # 对每个地点独立调用高德地理编码
+        resolved_locations = []
+        geocode_failures = 0
+        for loc in raw_locations:
+            name = loc.get("name", loc.get("location_text", ""))
+            loc_text = loc.get("location_text", "")
+            search_text = loc_text or name
+            lnglat = _geocode_location(search_text, resolved_city)
+
+            if lnglat:
+                resolved_locations.append({"name": name, "lnglat": lnglat})
+                print(f"  < 地点 '{name}': {lnglat}")
+            else:
+                resolved_locations.append({"name": name, "lnglat": None})
+                geocode_failures += 1
+                error_msg = f"地点 '{name}' 地理编码失败"
+                state["error_messages"].append(error_msg)
+                print(f"  < {error_msg}")
+
+        state["locations"] = resolved_locations
+        state["location_count"] = len(resolved_locations)
+
+        # 向后兼容：设置 location 和 location_text 为第一个有效地点
+        if resolved_locations:
+            first_valid = next((loc for loc in resolved_locations if loc["lnglat"]), resolved_locations[0])
+            state["location"] = first_valid.get("lnglat")
+            state["location_text"] = first_valid.get("name")
+            # 如果第一个地点 geocode 失败，尝试 fallback
+            if state["location"] is None:
+                fallback_lnglat = _fallback_location(resolved_city)
+                state["location"] = fallback_lnglat
+        else:
+            fallback_lnglat = _fallback_location(resolved_city)
+            state["location"] = fallback_lnglat
+            state["location_text"] = resolved_city
 
     except json.JSONDecodeError as exc:
         error_msg = f"JSON解析失败: {exc}"
